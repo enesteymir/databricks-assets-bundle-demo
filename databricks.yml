@@ -1,0 +1,126 @@
+bundle:
+  name: cdp_demo
+
+include:
+  - job_definitions/*.yml
+
+artifacts:
+  default:
+    type: whl
+    build: poetry build
+    path: .
+
+# https://docs.databricks.com/en/dev-tools/bundles/settings.html#retrieve-an-objects-id-value
+variables:
+  default_failure_notifications:
+    default:
+      - team-tracking-data-collection@zalando.de
+  base_cluster_policy_id:
+    description: 0F61EF4EEC000EE7 is the ID of zalando-e2.cloud.databricks.com
+    default: "0F61EF4EEC000EE7"
+  cost_allocation_id:
+    description: team sap to be found at https://sunrise.zalando.net/teams
+    default: 50051347
+  team_name:
+    description: team name
+    default: "t-rex"
+  user_name:
+    default: ${workspace.current_user.userName}
+  prod_service_principal_id:
+    description: this is application id of "app_tracking-unity-catalog+prod+sp@zalando.de"
+    default: "cd88eb31-e703-4ed5-a9ab-797114085168"
+  test_service_principal_id:
+    description: this is application id of "app_tracking-unity-catalog+test+sp@zalando.de"
+    default: "b1c897fc-9019-4fb9-9680-34517ca2f422"
+  service_principal_id:
+    description: defined by target
+  environment:
+    description: the environment parameter value for jobs
+    default: "test"
+  day:
+    description: the data snapshot date YYYY-MM-DD
+    default: "2025-05-21"
+  pause_status:
+    description: PAUSED or UNPAUSED
+    default: "PAUSED"
+  shared_tags:
+    description: "Tags shared by all targets and resources in the bundle"
+    type: "complex"
+    default: &SHARED_TAGS
+      repo: cdp_demo
+      z_team: "t-rex"
+  warehouse_id:
+    description: "SQL Warehouse ID, for SQL only jobs using Unity Catalog"
+    default: "aadfcfe90b8ca983" # t_rex_warehouse-test
+  workspace_path:
+    description: "Workspace path"
+    default: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+
+workspace:
+  host: https://zalando-e2.cloud.databricks.com
+  root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+
+
+targets:
+  dev:
+    default: true
+    mode: development
+    variables:
+      environment: dev
+      service_principal_id: ${var.test_service_principal_id}
+      pause_status: "PAUSED"
+      default_failure_notifications:
+        - ${workspace.current_user.userName}
+    permissions:
+      - level: CAN_MANAGE  
+        group_name: "team-tracking"
+    presets:
+      tags:
+        <<: *SHARED_TAGS
+        env: dev
+
+
+  staging:
+    mode: development
+    variables:
+      environment: staging
+      service_principal_id: ${var.test_service_principal_id}
+      pause_status: "PAUSED"
+      default_failure_notifications:
+        - team-tracking-data-collection@zalando.de
+    run_as:
+      service_principal_name: ${var.test_service_principal_id}
+    permissions:
+      - level: CAN_MANAGE
+        service_principal_name: ${var.test_service_principal_id}
+      - level: CAN_MANAGE
+        service_principal_name: ${var.prod_service_principal_id}
+      - level: CAN_MANAGE  
+        group_name: "team-tracking"
+    presets:
+      tags:
+        <<: *SHARED_TAGS
+        env: staging
+
+
+  prod:
+    mode: production
+    variables:
+      environment: prod
+      service_principal_id: ${var.prod_service_principal_id}
+      pause_status: "UNPAUSED"
+      default_failure_notifications:
+        - team-tracking-data-collection@zalando.de
+      warehouse_id: "3c47512da7526518" # t_rex_warehouse-prod
+    run_as:
+      service_principal_name: ${var.prod_service_principal_id}
+    permissions:
+      - level: CAN_MANAGE
+        service_principal_name: ${var.prod_service_principal_id}
+      - level: CAN_MANAGE  
+        group_name: "team-tracking"
+    presets:
+      tags:
+        <<: *SHARED_TAGS
+        env: prod

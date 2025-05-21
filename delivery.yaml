@@ -1,0 +1,54 @@
+version: "2017-09-20"
+
+test_vars: &TEST_VARS
+  DATABRICKS_HOST: https://zalando-e2.cloud.databricks.com
+  DATABRICKS_CLIENT_ID: b1c897fc-9019-4fb9-9680-34517ca2f422  # This is the applicationId of the app_tracking-unity-catalog+test+sp@zalando.de
+  DATABRICKS_CLIENT_SECRET:
+    secret_id: "app_tracking-unity-catalog+test+sp@zalando.de"
+    secret_version: "6d99d59c-d6cc-473c-bd82-b00b52609b29"    # This can be retrieved from Sunrise CI CD, your Test Service Principle's OAUTH token is kept in this secret
+    available_in_pull_requests: true
+
+prod_vars: &PROD_VARS
+  DATABRICKS_HOST: https://zalando-e2.cloud.databricks.com
+  DATABRICKS_CLIENT_ID: cd88eb31-e703-4ed5-a9ab-797114085168  # This is the applicationId of the app_tracking-unity-catalog+test+sp@zalando.de
+  DATABRICKS_CLIENT_SECRET:
+    secret_id: "app_tracking-unity-catalog+prod+sp@zalando.de"
+    secret_version: "1e6f0caf-c416-4d1b-b03c-4049bf357a52"    # This can be retrieved from Sunrise CI CD, your Prod Service Principle's OAUTH token is kept in this secret
+    available_in_pull_requests: true
+
+pipeline:
+  - id: staging-deploy
+    desc: Deploy the resource in the staging mode
+    type: script
+    vm_config:
+      type: linux
+      image: cdp-runtime/python-3.12
+    when:
+      event: pull_request
+    env:
+      <<: *TEST_VARS
+    commands:
+      - desc: "Validate Databricks Bundle"
+        cmd: |
+          databricks bundle validate
+      - desc: "Bundle Deploy"
+        cmd: |
+          databricks bundle deploy --target staging
+
+
+
+  - id: prod-deploy
+    desc: Deploy the resource in the production mode
+    type: script
+    vm_config:
+      type: linux
+      image: cdp-runtime/python-3.12
+    when:
+      branch: main
+      event: push
+    env:
+      <<: *PROD_VARS
+    commands:
+      - desc: "Bundle Deploy"
+        cmd: |
+          databricks bundle deploy --target prod

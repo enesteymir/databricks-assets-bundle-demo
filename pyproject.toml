@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "cdp_demo"
+version = "2025.05.21.1"
+description = "Customer Data Platform Pipelines"
+authors = ["Tracking Data Collection <team-tracking-data-collection@zalando.de>"]
+readme = "README.md"
+packages = [
+    { include = "notebook_demo", from = "job_sources" },
+    { include = "python_wheel_demo", from = "job_sources"}
+]
+
+# Include, in the python bundles, all files that impact the software behaviour
+include = [
+  "**/*.yaml",
+  "**/*.sql"
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyspark = "^3.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+cdp_wheel_job_entrypoint = "python_wheel_demo.wheel_job:main"
