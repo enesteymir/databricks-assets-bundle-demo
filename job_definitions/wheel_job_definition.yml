@@ -22,6 +22,7 @@ resources:
             - pypi:
                 package: anomalo==0.23.0
 
+
       job_clusters:
         - job_cluster_key: cdp_wheel_job_cluster_key
           new_cluster:
@@ -41,3 +42,8 @@ resources:
             policy_id: ${var.base_cluster_policy_id}
             custom_tags:
               cost_allocation: ${var.cost_allocation_id}
+            spark_conf:
+              "spark.sql.parquet.compression.codec": "zstd"               # Enables efficient storage compression, highly recommended.
+              "spark.databricks.delta.schema.autoMerge.enabled": "true"   # Allows automatic merging of schema changes during writes to Delta tables.
+              "spark.databricks.delta.autoCompact.enabled": "auto"        # Combines small files within Delta table partitions to automatically reduce small file problems, after each write
+              "spark.databricks.delta.optimizeWrite.enabled": "true"      # Improves the target file size while writing, increase read performance. But can increase write latency and memory usage.
